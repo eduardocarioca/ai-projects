@@ -25,31 +25,83 @@ jobs:
           flutter-version: '3.24.3'
           channel: 'stable'
 
-      - name: 4. Gerar Estrutura Android Nativa
+      - name: 4. Instalar/Configurar Android SDK (cli tools)
+        # usamos um action que coloca sdkmanager no PATH
+        uses: r0adkll/setup-android@v2
+        with:
+          api-level: 34
+
+      - name: 5. Detectar versão do Android SDK (compileSdk) e exportar variáveis
         run: |
+          # Determina onde está o SDK
+          if [ -n "$ANDROID_HOME" ]; then sdkroot="$ANDROID_HOME"
+          elif [ -n "$ANDROID_SDK_ROOT" ]; then sdkroot="$ANDROID_SDK_ROOT"
+          else sdkroot="$HOME/Android/Sdk"
+          fi
+
+          echo "SDK root detected: $sdkroot"
+
+          # Se houver plataformas instaladas, pega o maior API level instalado
+          if [ -d "$sdkroot/platforms" ]; then
+            max=$(ls "$sdkroot/platforms" 2>/dev/null | sed -E 's/android-([0-9]+)/\1/' | sort -n | tail -n1)
+          else
+            max=""
+          fi
+
+          # Se não houver plataforma instalada, instala android-34 (fallback)
+          if [ -z "$max" ]; then
+            echo "No Android platforms found; installing android-34..."
+            yes | sdkmanager "platforms;android-34" >/dev/null
+            max=34
+          fi
+
+          echo "Detected/selected compileSdk version: $max"
+
+          # Exporta para passos seguintes
+          echo "COMPILE_SDK_VERSION=$max" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$sdkroot" >> $GITHUB_ENV
+
+      - name: 6. Gerar Estrutura Android Nativa e aplicar compileSdk detectado
+        env:
+          COMPILE_SDK_VERSION: ${{ env.COMPILE_SDK_VERSION }}
+          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
+        run: |
+          # Remove qualquer pasta android pré-existente para criar uma nova
           rm -rf android
           rm -f pubspec.lock
           flutter create . --platforms=android --org=com.example --project-name cam_du_pro
-          
-          # Configura permissoes de rede no Manifest
-          sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
-          sed -i 's/<application/<application android:usesCleartextTraffic="true"/g' android/app/src/main/AndroidManifest.xml
-          
-          # Define compileSdk fixo para 34
-          sed -i 's/compileSdk = .*/compileSdk = 34/g' android/app/build.gradle
 
-          # Injeta configuracoes no local.properties
-          echo "flutter.compileSdkVersion=34" >> android/local.properties
+          # Aguarda brevemente para garantir que arquivos sejam escritos
+          sleep 1
+
+          # Se o Manifest existir, injeta permissões de rede (como antes)
+          if [ -f android/app/src/main/AndroidManifest.xml ]; then
+            sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
+            sed -i 's/<application/<application android:usesCleartextTraffic="true"/g' android/app/src/main/AndroidManifest.xml || true
+          fi
+
+          # Define compileSdk na forma compatível com os vários formatos de build.gradle
+          if [ -f android/app/build.gradle ]; then
+            # tenta substituir "compileSdk = X" ou "compileSdkVersion X"
+            sed -i "s/compileSdk = .*/compileSdk = ${COMPILE_SDK_VERSION}/g" android/app/build.gradle || true
+            sed -i "s/compileSdkVersion [0-9]\+/compileSdkVersion ${COMPILE_SDK_VERSION}/g" android/app/build.gradle || true
+          fi
+
+          # Injeta configuracoes no local.properties para que o Flutter/Gradle usem a mesma versão
+          # Escreve também o sdk.dir apontando para o SDK detectado
+          mkdir -p android
+          echo "sdk.dir=${ANDROID_SDK_ROOT}" > android/local.properties
+          echo "flutter.compileSdkVersion=${COMPILE_SDK_VERSION}" >> android/local.properties
           echo "flutter.minSdkVersion=21" >> android/local.properties
-          echo "flutter.targetSdkVersion=34" >> android/local.properties
+          echo "flutter.targetSdkVersion=${COMPILE_SDK_VERSION}" >> android/local.properties
 
-      - name: 5. Baixar Dependencias
+      - name: 7. Baixar Dependencias
         run: flutter pub get
 
-      - name: 6. Compilar o APK de Release
+      - name: 8. Compilar o APK de Release
         run: flutter build apk --release --no-tree-shake-icons
 
-      - name: 7. Disponibilizar o APK para Download
+      - name: 9. Disponibilizar o APK para Download
         uses: actions/upload-artifact@v4
         with:
           name: app-release
