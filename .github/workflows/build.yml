@@ -36,6 +36,9 @@ jobs:
           
           # Ajusta o SDK para a versão exigida pelo media_kit
           sed -i 's/compileSdk = .*/compileSdk = 36/g' android/app/build.gradle
+          
+          # Configura compileSdkVersion global para todas as dependências
+          echo "android.compileSdkVersion=36" >> android/gradle.properties
 
       - name: 5. Baixar Dependencias
         run: flutter pub get
