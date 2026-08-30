@@ -17,13 +17,13 @@ dependencies:
   media_kit_video: ^2.0.1
   media_kit_libs_video: ^1.0.7
 
+dependency_overrides:
+  package_info_plus: 8.3.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
-  
-  dependency_overrides:
-  package_info_plus: 8.3.1
 
 flutter:
   uses-material-design: true
