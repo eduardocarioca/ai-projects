@@ -22,16 +22,16 @@ android {
         applicationId "com.example.camdupro"
         minSdk 21
         targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "2.0.0"
     }
 
     buildTypes {
         release {
+            // Substitua pela chave de assinatura da aplicação antes da publicação.
+            signingConfig signingConfigs.debug
             minifyEnabled false
             shrinkResources false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.debug
         }
     }
 }

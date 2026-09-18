@@ -1,56 +1,116 @@
 # camDu Pro
 
-Aplicativo Flutter para monitoramento de câmeras IP com **RTSP/RTSPS/HTTP/HTTPS**, QR Code, múltiplas câmeras e visualização em tela cheia.
+Aplicativo Flutter para monitoramento de câmeras IP com suporte a RTSP/RTSPS/HTTP/HTTPS, QR Code, múltiplas câmeras e visualização em tela cheia.
 
-## Principais recursos
+## Funcionalidades
 
-- Cadastro persistente de câmeras.
-- Compatibilidade com URLs `rtsp://`, `rtsps://`, `http://` e `https://`.
-- Player nativo baseado em MediaKit/MPV.
-- Transporte RTSP configurável entre **TCP** e **UDP** (TCP é o padrão recomendado).
-- Grade 2xN ou lista.
-- Reconexão manual quando uma câmera fica indisponível.
+- Cadastro, edição, remoção e persistência local de câmeras.
+- Reprodução de streams RTSP, RTSPS, HTTP e HTTPS com MediaKit/MPV.
+- Visualização em grade 2xN ou lista.
 - Tela cheia por botão ou duplo toque.
-- Scanner QR Code para URL simples ou JSON `{ "name": "Câmera", "url": "rtsp://..." }`.
-- Migração automática do formato antigo de câmeras salvo pelo projeto anterior.
+- Reconexão manual de streams indisponíveis.
+- Scanner QR Code para URL direta ou JSON no formato `{"name":"Entrada","url":"rtsp://..."}`.
+- Transporte RTSP configurável entre TCP e UDP.
 - Aceleração de hardware configurável.
-- GitHub Actions para análise, testes, APK e AAB.
+- Migração automática do formato antigo de câmeras.
+- Workflow GitHub Actions para análise, testes, APK e AAB.
 
-## Como testar
+## Requisitos
 
-1. Abra o projeto no GitHub/Codespaces ou em um ambiente Flutter.
-2. Execute `flutter pub get`.
-3. Execute `flutter analyze`.
-4. Execute `flutter test`.
-5. Execute `flutter run` ou `flutter build apk --release`.
-6. No Android, dê permissão de câmera quando abrir o scanner QR Code.
+- Flutter 3.24.3 ou superior compatível com Dart 3.
+- Java 17.
+- Android SDK Platform 34.
+- Android SDK Build-Tools 34.
+- Android SDK Platform-Tools.
 
-### URL RTSP de exemplo
+## Estrutura
+
+O projeto deve ser executado a partir da raiz do repositório. Os arquivos principais são:
+
+```text
+lib/main.dart
+android/app/build.gradle
+android/app/src/main/AndroidManifest.xml
+android/app/src/main/kotlin/com/example/camdupro/MainActivity.kt
+pubspec.yaml
+```
+
+## Configuração local
+
+Copie `android/local.properties.example` para `android/local.properties` e ajuste os caminhos:
+
+```properties
+sdk.dir=/caminho/para/Android/Sdk
+flutter.sdk=/caminho/para/flutter
+```
+
+Exemplo no Windows:
+
+```properties
+sdk.dir=C:/Users/SeuUsuario/AppData/Local/Android/Sdk
+flutter.sdk=C:/src/flutter
+```
+
+O arquivo `android/local.properties` é local e não deve ser commitado.
+
+## Executar e validar
+
+Na raiz do projeto:
+
+```bash
+flutter doctor
+flutter pub get
+flutter analyze
+flutter test
+flutter run
+```
+
+Para gerar os pacotes de release:
+
+```bash
+flutter build apk --release
+flutter build appbundle --release
+```
+
+O APK será gerado em `build/app/outputs/flutter-apk/app-release.apk` e o AAB em `build/app/outputs/bundle/release/app-release.aab`.
+
+## Configurar uma câmera
+
+Use o botão `+` e informe uma URL real da câmera ou NVR, por exemplo:
 
 ```text
 rtsp://usuario:senha@192.168.1.100:554/stream1
 ```
 
-> A URL exata depende do fabricante/modelo da câmera ou NVR. O aplicativo não consegue descobrir automaticamente o caminho RTSP de uma câmera apenas pelo IP.
+A URL e o caminho do stream variam de acordo com o fabricante. O telefone precisa alcançar a câmera pela rede. Para redes instáveis, use TCP; em redes locais estáveis, UDP pode funcionar melhor.
 
-## Observações sobre RTSP
+## QR Code
 
-O player usa MediaKit/MPV e aceita RTSP diretamente. A conexão depende da câmera/NVR, rede local, autenticação e codec fornecido pelo equipamento. H.264 costuma ser a opção mais compatível em Android.
+O scanner aceita uma URL direta ou JSON:
 
-Para redes com perda de pacotes, teste primeiro **TCP**. Para redes locais estáveis e quando a câmera funcionar melhor em UDP, altere para **UDP** em Ajustes.
+```json
+{"name":"Entrada","url":"rtsp://usuario:senha@192.168.1.10:554/stream1"}
+```
 
-## Build no GitHub Actions
+## GitHub Actions
 
-O workflow `.github/workflows/build.yml` executa análise, testes e gera:
+O workflow em `.github/workflows/build.yml` executa automaticamente:
 
-- `app-release.apk`
-- `app-release.aab`
-
-Os arquivos ficam disponíveis nos **Artifacts** da execução do workflow.
+1. Flutter e Java 17.
+2. Android SDK 34.
+3. `flutter pub get`.
+4. `flutter analyze`.
+5. `flutter test`.
+6. Build de APK e AAB.
+7. Upload dos artefatos da execução.
 
 ## Limitações conhecidas
 
-- O aplicativo não testa uma câmera real durante o build; a câmera precisa estar acessível no aparelho de teste.
-- Alguns equipamentos exigem URLs RTSP específicas do fabricante.
-- Streams H.265/HEVC podem depender do suporte do dispositivo Android e do backend nativo.
-- Para publicação na Google Play, configure uma chave de assinatura de release própria em vez da assinatura debug usada no workflow de testes.
+- O build não testa uma câmera real; a câmera precisa estar acessível no dispositivo.
+- Alguns equipamentos exigem uma URL RTSP específica.
+- H.265/HEVC depende do suporte do dispositivo Android e do backend nativo.
+- Para publicar na Google Play, configure uma chave de assinatura release própria; a assinatura debug não deve ser usada em produção.
+
+## Licença
+
+Consulte os avisos de terceiros em `THIRD_PARTY_NOTICES.md` antes de distribuir o aplicativo.
